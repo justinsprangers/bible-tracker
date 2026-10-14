@@ -204,6 +204,8 @@ function render() {
   document.querySelectorAll(".tabbar button").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
   $("#backBtn").hidden = r.name !== "book";
   const view = $("#view");
+  // Redraws (e.g. when the app comes back into view) must not wipe text typed but not yet saved.
+  const typed = ["setUrl", "setToken"].map(id => [id, document.getElementById(id) && document.getElementById(id).value]);
   let html = "";
   if (r.name === "book" && BOOKS[+r.arg]) html = viewBook(BOOKS[+r.arg]);
   else if (r.name === "books") html = viewBooks();
@@ -211,6 +213,7 @@ function render() {
   else if (r.name === "settings") html = viewSettings();
   else html = viewToday();
   view.innerHTML = html;
+  typed.forEach(([id, v]) => { const el = document.getElementById(id); if (el && v) el.value = v; });
   renderPill();
 }
 
