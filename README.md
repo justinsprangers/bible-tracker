@@ -17,4 +17,6 @@ Open the app and start tapping chapters. That's it. Everything is saved on the d
 4. Click **Deploy → New deployment → Web app**. Set Execute as **Me** and Who has access **Anyone**, then click **Deploy**. Copy the Web app URL (it ends in `/exec`).
 5. In the app, go to **Settings → Sync across devices**, paste in the URL and your token, then tap **Save & sync**. Do this on each device.
 
-Your data lives only in your own sheet. Sync runs on its own: when the app opens, after each change, and every 2 minutes while it's open. The first device to connect to an empty sheet uploads what it already has.
+Your data lives only in your own sheet. Sync runs on its own: when the app opens, after each change, when the connection comes back, and every 2 minutes while it's open. It doesn't run in the background, so a change made offline uploads the next time you open the app online. The first device to connect to an empty sheet uploads what it already has.
+
+You can move or rename the sheet freely. Don't rename its **Setup** or **Reading Log** tabs, and don't use **Make a copy**, because the copy gets its own script and a different link.
