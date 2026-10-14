@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Bible Tracker</title>
+  <meta name="description" content="Track your Bible reading chapter by chapter, offline, synced to your Google Sheet.">
+  <meta name="theme-color" content="#f6f2ea" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#171513" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Bible Tracker">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <button class="icon-btn back" id="backBtn" hidden aria-label="Back">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <h1 id="title">Today</h1>
+    <button class="sync-pill" id="syncPill" type="button" aria-live="polite">
+      <span class="dot"></span><span class="label">Local only</span>
+    </button>
+  </header>
+
+  <main id="view" tabindex="-1"></main>
+
+  <nav class="tabbar" aria-label="Sections">
+    <button data-tab="today" class="active">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10 5 7 4.5 4 5v13c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5V5c-3-.5-6 0-8 1.5zM12 6.5v13"/></svg>
+      <span>Today</span>
+    </button>
+    <button data-tab="books">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h4v16H4zM10 4h4v16h-4zM16 5l3.5-1 2.5 15-3.5 1z"/></svg>
+      <span>Books</span>
+    </button>
+    <button data-tab="stats">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-6"/></svg>
+      <span>Stats</span>
+    </button>
+    <button data-tab="settings">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      <span>Settings</span>
+    </button>
+  </nav>
+
+  <div class="sheet-backdrop" id="sheetBackdrop" hidden></div>
+  <section class="sheet" id="sheet" role="dialog" aria-modal="true" hidden></section>
+  <div class="toast" id="toast" role="status" hidden></div>
+
+  <script src="bible.js"></script>
+  <script src="snapshot.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
