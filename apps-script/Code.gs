@@ -181,7 +181,7 @@ function fmt_(v, tz) {
 
 // Must match normKey() in app/bible.js.
 function normKey_(s) {
-  return String(s).replace(/[​-‍⁠﻿]/g, '').toLowerCase().replace(/\s+/g, ' ').trim()
+  return String(s).replace(/[\u200b-\u200d\u2060\ufeff]/g, '').toLowerCase().replace(/\s+/g, ' ').trim()
     .replace(/^iii /, '3 ').replace(/^ii /, '2 ').replace(/^i /, '1 ')
     .replace(/^psalm (\d)/, 'psalms $1')
     .replace(/^song of songs /, 'song of solomon ');

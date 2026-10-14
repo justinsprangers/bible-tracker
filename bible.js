@@ -26,7 +26,7 @@ const BOOKS = BOOKS_RAW.map(([name, abbr, chapters], i) => ({
 // Same normalization as apps-script/Code.gs, so chapter labels in the sheet
 // ("Psalm 23", "Song of Songs 2", "I Samuel 3") match the app's keys.
 function normKey(s) {
-  return String(s).replace(/[​-‍⁠﻿]/g, "").toLowerCase().replace(/\s+/g, " ").trim()
+  return String(s).replace(/[\u200b-\u200d\u2060\ufeff]/g, "").toLowerCase().replace(/\s+/g, " ").trim()
     .replace(/^iii /, "3 ").replace(/^ii /, "2 ").replace(/^i /, "1 ")
     .replace(/^psalm (\d)/, "psalms $1")
     .replace(/^song of songs /, "song of solomon ");
