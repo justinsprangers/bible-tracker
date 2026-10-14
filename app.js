@@ -421,7 +421,7 @@ function viewSettings() {
       ${warn.length ? `<p class="small" style="margin:0;color:var(--warn)">${warn.join("<br>")}</p>` : ""}
       <label class="field">Web app URL (from Apps Script → Deploy)
         <input id="setUrl" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec" value="${esc(s.url)}"></label>
-      <label class="field">Token (the TOKEN value in the script)
+      <label class="field">Token (cell B1 of the sheet's Setup tab)
         <input id="setToken" type="password" autocomplete="off" spellcheck="false" value="${esc(s.token)}"></label>
       <div class="row" style="flex-wrap:wrap">
         <button class="btn primary" data-action="save-sync">Save & sync</button>

@@ -1,18 +1,19 @@
 /**
  * Bible Tracker sync endpoint. Works with any Google Sheet, including a blank one:
- * it creates a "Reading Log" tab (one row per chapter, read dates across the row).
+ * it creates a "Reading Log" tab (one row per chapter, read dates across the row)
+ * and a "Setup" tab whose cell B1 holds your token.
  *
- * Setup (details in BibleTracker/README.md):
- *   1. Extensions > Apps Script, paste this file, change TOKEN, Save.
+ * Setup (details in the README):
+ *   1. Extensions > Apps Script, paste this file, Save.
  *   2. Deploy > New deployment > Web app. Execute as: Me. Who has access: Anyone.
- *   3. Paste the /exec URL and the token into the app's Settings on each device.
+ *   3. Put a long random token in cell B1 of the Setup tab (run setup() once, or
+ *      connect the app once, to create the tab).
+ *   4. Paste the /exec URL and the token into the app's Settings on each device.
  *
  * The app sends a list of add/remove operations and gets back every chapter's dates.
  */
 
-// Change this to any long random string, and enter the same value in the app's Settings.
-const TOKEN = 'CHANGE-ME';
-
+const SETUP_SHEET = 'Setup';      // token lives in B1 of this tab
 const SHEET_NAME = 'Reading Log'; // created automatically if missing
 const HEADER_ROW = 1;
 const CHAPTER_COL = 2;            // column B: "Genesis 1"
@@ -43,14 +44,17 @@ function doPost(e) {
   return handle_(body, body.ops || []);
 }
 
-// Optional: run this once from the editor to create the Reading Log tab ahead of time.
+// Optional: run this once from the editor to create the Setup and Reading Log tabs ahead of time.
 function setup() {
-  getLogSheet_(SpreadsheetApp.getActiveSpreadsheet());
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  getSetupSheet_(ss);
+  getLogSheet_(ss);
 }
 
 function handle_(params, ops) {
-  if (TOKEN === 'CHANGE-ME') return json_({ ok: false, error: 'Set TOKEN in the Apps Script first.' });
-  if (!params || params.token !== TOKEN) return json_({ ok: false, error: 'Wrong token.' });
+  const token = String(getSetupSheet_(SpreadsheetApp.getActiveSpreadsheet()).getRange('B1').getValue()).trim();
+  if (!token) return json_({ ok: false, error: 'Put your token in cell B1 of the sheet\'s Setup tab.' });
+  if (!params || params.token !== token) return json_({ ok: false, error: 'Wrong token.' });
 
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
@@ -99,6 +103,16 @@ function handle_(params, ops) {
   } finally {
     lock.releaseLock();
   }
+}
+
+function getSetupSheet_(ss) {
+  const existing = ss.getSheetByName(SETUP_SHEET);
+  if (existing) return existing;
+  const sheet = ss.insertSheet(SETUP_SHEET);
+  sheet.getRange('A1:A3').setValues([['Sync token'], ['Web app URL'],
+    ['Put a long random token in B1 (it works like a password) and the /exec link in B2. Keep this sheet private.']]);
+  sheet.getRange('A1:A2').setFontWeight('bold');
+  return sheet;
 }
 
 function getLogSheet_(ss) {
