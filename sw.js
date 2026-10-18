@@ -1,6 +1,6 @@
 // Offline support: serve the app from cache, refresh the cache in the background.
 // Bump CACHE when shipping changes so old files are cleared out.
-const CACHE = "bible-tracker-v7";
+const CACHE = "bible-tracker-v8";
 const SHELL = [
   "./", "index.html", "styles.css", "bible.js", "snapshot.js", "app.js", "manifest.webmanifest",
   "icon.svg", "icon-192.png", "icon-512.png", "apple-touch-icon.png",
@@ -8,8 +8,10 @@ const SHELL = [
 
 self.addEventListener("install", e => {
   // Cache files one by one so an optional file (snapshot.js) being absent doesn't break offline mode.
+  // cache: "reload" skips the browser's HTTP cache (GitHub Pages allows 10 minutes), so a new
+  // version never gets filled with the previous version's files.
   e.waitUntil(caches.open(CACHE)
-    .then(c => Promise.allSettled(SHELL.map(f => c.add(f))))
+    .then(c => Promise.allSettled(SHELL.map(f => c.add(new Request(f, { cache: "reload" })))))
     .then(() => self.skipWaiting()));
 });
 
@@ -29,7 +31,8 @@ self.addEventListener("fetch", e => {
     caches.open(CACHE).then(async cache => {
       const cached = await cache.match(req, { ignoreSearch: true }) ||
         (req.mode === "navigate" ? await cache.match("index.html") : undefined);
-      const fresh = fetch(req).then(res => {
+      // "no-cache" re-checks with the server (cheap when unchanged) instead of trusting the HTTP cache.
+      const fresh = fetch(req.url, { cache: "no-cache" }).then(res => {
         if (res.ok) cache.put(req, res.clone());
         return res;
       }).catch(() => cached);
