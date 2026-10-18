@@ -19,7 +19,7 @@ BOOKS.forEach(b => { for (let c = 1; c <= b.chapters; c++) KEY_TO_REF[chKey(b, c
 
 let store = loadStore();
 let reads = {};
-const ui = { logDate: null, mode: "log", testament: "OT", pass: null };
+const ui = { logDate: null, mode: "log", testament: "OT", pass: null, unit: "month" };
 const $ = sel => document.querySelector(sel);
 
 /* ---------------- Storage ---------------- */
@@ -200,9 +200,9 @@ function route() {
 
 function render() {
   const r = route();
-  const tab = r.name === "book" ? "books" : r.name;
+  const tab = r.name === "book" ? "books" : r.name === "activity" ? "stats" : r.name;
   document.querySelectorAll(".tabbar button").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
-  $("#backBtn").hidden = r.name !== "book";
+  $("#backBtn").hidden = r.name !== "book" && r.name !== "activity";
   const view = $("#view");
   // Redraws (e.g. when the app comes back into view) must not wipe text typed but not yet saved.
   const typed = ["setUrl", "setToken"].map(id => [id, document.getElementById(id) && document.getElementById(id).value]);
@@ -210,6 +210,7 @@ function render() {
   if (r.name === "book" && BOOKS[+r.arg]) html = viewBook(BOOKS[+r.arg]);
   else if (r.name === "books") html = viewBooks();
   else if (r.name === "stats") html = viewStats();
+  else if (r.name === "activity") html = viewActivity();
   else if (r.name === "settings") html = viewSettings();
   else html = viewToday();
   view.innerHTML = html;
@@ -386,8 +387,9 @@ function viewStats() {
       </tbody></table>
     </div>
     <div class="card">
-      <h2>Chapters per month</h2>
-      <div class="months">${months.map(x => `<div class="m" title="${x.k}: ${x.n}"><span class="v">${x.n || ""}</span><i style="height:${(100 * x.n / peak).toFixed(0)}%"></i><span>${x.lbl}</span></div>`).join("")}</div>
+      <div class="row spread"><h2 style="margin:0">Chapters per month</h2>
+        <button class="btn sm ghost" data-action="go" data-to="activity">See all ›</button></div>
+      <div class="months">${months.map(x => `<button class="m" data-action="period" data-unit="month" data-key="${x.k}" ${x.n ? "" : "disabled"} aria-label="${x.k}: ${x.n} chapters"><span class="v">${x.n || ""}</span><i style="height:${(100 * x.n / peak).toFixed(0)}%"></i><span>${x.lbl}</span></button>`).join("")}</div>
       <div class="kpis">
         <div class="kpi"><div class="num">${st.current}</div><div class="lbl">Streak</div></div>
         <div class="kpi"><div class="num">${st.best}</div><div class="lbl">Best streak</div></div>
@@ -398,6 +400,103 @@ function viewStats() {
       <h2>What's next: longest since read</h2>
       <ul class="list">${list}</ul>
     </div>`;
+}
+
+/* ---------------- Reading history (week / month / year) ---------------- */
+
+const UNITS = { week: "Week", month: "Month", year: "Year" };
+
+function periodStart(iso, unit) {
+  if (unit === "year") return iso.slice(0, 4);
+  if (unit === "month") return iso.slice(0, 7);
+  return addDays(iso, -new Date(isoToUtc(iso)).getUTCDay()); // weeks start on Sunday
+}
+
+function nextPeriod(key, unit) {
+  if (unit === "year") return String(+key + 1);
+  if (unit === "month") { let [y, m] = key.split("-").map(Number); if (++m > 12) { m = 1; y++; } return `${y}-${pad(m)}`; }
+  return addDays(key, 7);
+}
+
+function periodLabel(key, unit) {
+  if (unit === "year") return key;
+  if (unit === "month") return fmtDate(key + "-01", { month: "long", year: "numeric" });
+  const end = addDays(key, 6);
+  return `${fmtDate(key, { month: "short", day: "numeric" })} – ${fmtDate(end, { month: "short", day: "numeric", year: "numeric" })}`;
+}
+
+function rowLabel(key, unit) {
+  if (unit === "year") return key;
+  if (unit === "month") return fmtDate(key + "-01", { month: "short", year: "numeric" });
+  return fmtDate(key, { month: "short", day: "numeric", year: "numeric" });
+}
+
+// Every period from the first read to today, including empty ones, oldest first.
+function readingHistory(unit) {
+  const dated = allEntries().filter(e => isIso(e.date));
+  if (!dated.length) return [];
+  const counts = {};
+  let first = dated[0].date;
+  dated.forEach(e => { const k = periodStart(e.date, unit); counts[k] = (counts[k] || 0) + 1; if (e.date < first) first = e.date; });
+  const out = [], last = periodStart(todayIso(), unit);
+  for (let k = periodStart(first, unit); k <= last && out.length < 5000; k = nextPeriod(k, unit)) out.push({ key: k, n: counts[k] || 0 });
+  return out;
+}
+
+// "Genesis 12–18, 21; Exodus 1" from a list of {book, ch}.
+function compressRefs(refs) {
+  const s = refs.slice().sort((a, b) => a.book.id - b.book.id || a.ch - b.ch);
+  const parts = [];
+  for (let i = 0; i < s.length;) {
+    const book = s[i].book, runs = [];
+    while (i < s.length && s[i].book === book) {
+      const a = s[i].ch; let z = a; i++;
+      while (i < s.length && s[i].book === book && s[i].ch <= z + 1) { z = Math.max(z, s[i].ch); i++; }
+      runs.push(a === z ? `${a}` : `${a}–${z}`);
+    }
+    parts.push(book.chapters === 1 ? book.name : `${book.name} ${runs.join(", ")}`);
+  }
+  return parts.join("; ");
+}
+
+function viewActivity() {
+  setTitle("Reading history");
+  const unit = ui.unit, rows = readingHistory(unit);
+  const seg = `<div class="seg">${Object.keys(UNITS).map(u => `<button class="${u === unit ? "on" : ""}" data-action="set-unit" data-unit="${u}">${UNITS[u]}</button>`).join("")}</div>`;
+  if (!rows.length) return `<div class="books-toolbar">${seg}</div><div class="card empty">No reads logged yet.</div>`;
+  const total = rows.reduce((s, r) => s + r.n, 0);
+  const best = rows.reduce((a, r) => (r.n > a.n ? r : a), rows[0]);
+  const active = rows.filter(r => r.n).length;
+  const list = rows.slice().reverse().map(r => `<li class="${r.n ? "" : "zero"}">
+      <button data-action="period" data-unit="${unit}" data-key="${r.key}" ${r.n ? "" : "disabled"}>
+        <span class="lbl">${esc(rowLabel(r.key, unit))}</span>
+        <span class="track"><i style="width:${(100 * r.n / best.n).toFixed(1)}%"></i></span>
+        <span class="n">${r.n || "–"}</span>
+      </button></li>`).join("");
+  return `
+    <div class="books-toolbar">${seg}</div>
+    <div class="kpis">
+      <div class="kpi"><div class="num">${num(total)}</div><div class="lbl">Chapters</div></div>
+      <div class="kpi"><div class="num">${(total / rows.length).toFixed(1)}</div><div class="lbl">Avg / ${unit}</div></div>
+      <div class="kpi"><div class="num">${num(best.n)}</div><div class="lbl">Best ${unit}</div></div>
+    </div>
+    <p class="muted small" style="margin:10px 2px 0">Best: ${esc(periodLabel(best.key, unit))}. You read in ${active} of ${rows.length} ${unit}s. Tap a row to see the chapters.</p>
+    <div class="card" style="padding:4px 14px"><ul class="hist">${list}</ul></div>`;
+}
+
+function periodSheet(unit, key) {
+  const byDate = {};
+  allEntries().forEach(e => {
+    if (isIso(e.date) && periodStart(e.date, unit) === key) (byDate[e.date] = byDate[e.date] || []).push(KEY_TO_REF[e.key]);
+  });
+  const dates = Object.keys(byDate).sort().reverse();
+  const total = dates.reduce((s, d) => s + byDate[d].length, 0);
+  openSheet(`
+    <h2>${esc(periodLabel(key, unit))}</h2>
+    <p class="muted small" style="margin:0 0 8px">${num(total)} chapter${total === 1 ? "" : "s"} on ${dates.length} day${dates.length === 1 ? "" : "s"}</p>
+    ${dates.length ? `<ul class="list">${dates.map(d => `<li style="display:block">
+        <div class="small muted">${fmtDate(d, { weekday: "short", month: "short", day: "numeric", year: "numeric" })} · ${byDate[d].length}</div>
+        <div>${esc(compressRefs(byDate[d]))}</div></li>`).join("")}</ul>` : `<div class="empty">Nothing logged.</div>`}`);
 }
 
 function viewSettings() {
@@ -521,7 +620,9 @@ document.addEventListener("click", e => {
   const ch = el.dataset.ch ? +el.dataset.ch : null;
 
   switch (el.dataset.action) {
-    case "go": location.hash = el.dataset.to; break;
+    case "go": location.hash = el.dataset.to; window.scrollTo(0, 0); break;
+    case "set-unit": ui.unit = el.dataset.unit; render(); break;
+    case "period": periodSheet(el.dataset.unit, el.dataset.key); break;
     case "open-book": ui.logDate = null; location.hash = `book/${book.id}`; window.scrollTo(0, 0); break;
     case "quick-log": {
       const d = todayIso();
@@ -606,7 +707,9 @@ document.addEventListener("change", e => {
 
 $("#sheetBackdrop").addEventListener("click", closeSheet);
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheet(); });
-$("#backBtn").addEventListener("click", () => { if (history.length > 1) history.back(); else location.hash = "books"; });
+$("#backBtn").addEventListener("click", () => {
+  if (history.length > 1) history.back(); else location.hash = route().name === "activity" ? "stats" : "books";
+});
 $("#syncPill").addEventListener("click", () => {
   if (!(store.settings.url && store.settings.token)) location.hash = "settings"; else sync(true);
 });

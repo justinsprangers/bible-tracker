@@ -1,6 +1,6 @@
 // Offline support: serve the app from cache, refresh the cache in the background.
 // Bump CACHE when shipping changes so old files are cleared out.
-const CACHE = "bible-tracker-v6";
+const CACHE = "bible-tracker-v7";
 const SHELL = [
   "./", "index.html", "styles.css", "bible.js", "snapshot.js", "app.js", "manifest.webmanifest",
   "icon.svg", "icon-192.png", "icon-512.png", "apple-touch-icon.png",
